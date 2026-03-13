@@ -59,7 +59,7 @@ const port = process.env.PORT || 3000;
 app.use(bodyParser.json());
 
 app.use(cors({
-  origin:"https://hashvault.vercel.app",
+  origin:"*",
   methods:["GET", "POST", "DELETE", "PUT"],
   credentials:true,
 }));
