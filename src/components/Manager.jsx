@@ -21,18 +21,26 @@ const Manager = () => {
   const getPasswords = async () => {
     try {
       const response = await fetch(`${import.meta.env.VITE_REACT_APP_BACKEND_BASE_URL}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       const data = await response.json();
+      
+      if (!Array.isArray(data)) {
+        throw new Error('Invalid data format received');
+      }
 
       setPasswordArray(
         data.map((pwd) => ({
           ...pwd,
-          id: pwd._id,
-          decryptedPassword: pwd.password || "", 
+          id: pwd._id || pwd.id, 
+          password: pwd.password || '', 
         }))
       );
     } catch (error) {
       console.error("Error fetching passwords:", error);
-      toast.error("Failed to fetch passwords");
+      toast.error(`Failed to fetch passwords: ${error.message}`);
+      setPasswordArray([]); 
     }
   };
 
@@ -44,18 +52,19 @@ const Manager = () => {
     getPasswords();
   }, []);
 
-  const copyText = (text) => {
-    toast("Copied to clipboard!", {
-      position: "top-right",
-      autoClose: 5000,
-      hideProgressBar: false,
-      closeOnClick: true,
-      pauseOnHover: true,
-      draggable: true,
-      progress: undefined,
-      theme: "dark",
-    });
-    navigator.clipboard.writeText(text);
+  const copyText = (text, isPassword = false) => {
+    if (!text) {
+      toast.error("Nothing to copy!");
+      return;
+    }
+    
+    try {
+      navigator.clipboard.writeText(text);
+      toast.success("Copied to clipboard!");
+    } catch (error) {
+      console.error("Copy failed:", error);
+      toast.error("Failed to copy to clipboard");
+    }
   };
 
   const showPassword = () => {
@@ -67,22 +76,7 @@ const Manager = () => {
         : "icons/eyecross.png";
   };
 
-  /*const checkURL = async (url) => {
-    try {
-      const response = await axios.get(url);
-      if (response.status === 200) {
-        setStatus("URL is responding properly.");
-      } else {
-        setStatus(`Received status code: ${response.status}`);
-      }
-    } catch (error) {
-      setStatus(`Error: ${error.message}`);
-    }
-  };
-  console.log(form.site);
   
-  checkURL(form.site);
-*/
   const generatePassword = () => {
     const lowerCase = "abcdefghijklmnopqrstuvwxyz";
     const upperCase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -121,50 +115,43 @@ const Manager = () => {
     if (
       form.site.length > 3 &&
       form.username.length >= 3 &&
-      validatePassword(form.password) &&
-      validate(form.site)
+      validatePassword(form.password)
     ) {
       try {
-        if (form.id) {
-          
-        } else {
-          const response = await fetch(`${import.meta.env.VITE_REACT_APP_BACKEND_BASE_URL}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              site: form.site,
-              username: form.username,
-              password: form.password,
-            }),
-          });
+        const formattedSite = form.site.startsWith('http') ? form.site : `https://${form.site}`;
+        
+        const response = await fetch(`${import.meta.env.VITE_REACT_APP_BACKEND_BASE_URL}`, {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            site: formattedSite,
+            username: form.username,
+            password: form.password,
+          }),
+        });
 
-          if (!response.ok) {
-            throw new Error("Failed to save password");
-          }
-
-          const data = await response.json();
-          await getPasswords();
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || `Server error: ${response.status}`);
         }
 
+        const data = await response.json().catch(() => ({}));
+        
+        if (data.success === false) {
+          throw new Error(data.message || 'Failed to save password');
+        }
+
+        await getPasswords();
         setForm({ id: "", site: "", username: "", password: "" });
-        toast("Password saved!", {
-          position: "top-right",
-          autoClose: 5000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
-          theme: "dark",
-        });
+        toast.success("Password saved successfully!");
       } catch (error) {
         console.error("Error saving password:", error);
-        toast.error("Failed to save password");
+        toast.error(error.message || "Failed to save password. Please try again.");
       }
     } else {
-      toast.error(
-        "Error: Password not saved! Ensure the password meets all criteria."
-      );
+      toast.error("Please ensure all fields are filled correctly and password meets requirements");
     }
   };
   const deletePassword = async (id) => {
@@ -174,7 +161,6 @@ const Manager = () => {
 
     if (confirmDelete) {
       try {
-        // Send DELETE request to the server
         const response = await fetch(`${import.meta.env.VITE_REACT_APP_BACKEND_BASE_URL}/${id}`, {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
@@ -185,10 +171,8 @@ const Manager = () => {
           throw new Error(errorData.message || "Failed to delete password");
         }
 
-        // Remove the deleted password from the state
         setPasswordArray(passwordArray.filter((item) => item._id !== id));
 
-        // Show success message
         toast("Password Deleted!", {
           position: "top-right",
           autoClose: 5000,
@@ -199,7 +183,6 @@ const Manager = () => {
           theme: "dark",
         });
       } catch (error) {
-        // Handle errors (e.g., network issues, server errors)
         console.error("Error deleting password:", error);
         toast.error(`Error: ${error.message}`, {
           position: "top-right",
@@ -238,8 +221,8 @@ const Manager = () => {
           </tr>
         </thead>
         <tbody className="bg-green-100">
-          {passwordArray.map((item, index) => (
-            <tr key={item._id || index}>
+          {passwordArray.map((item) => (
+            <tr key={item.id}>
               <td className="py-2 border border-white text-center">
                 <div className="flex items-center justify-center">
                   <img src={getFavicon(item.site)} className="mr-3" alt="" />
@@ -288,16 +271,7 @@ const Manager = () => {
                   <span>{"*".repeat(8)}</span>
                   <div
                     className="lordiconcopy size-7 cursor-pointer"
-                    onClick={() => {
-                      if (
-                        item.decryptedPassword &&
-                        item.decryptedPassword.length > 0
-                      ) {
-                        copyText(item.decryptedPassword);
-                      } else {
-                        toast.error("Password not available");
-                      }
-                    }}
+                    onClick={() => copyText(item.password, true)}
                   >
                     <lord-icon
                       style={{
