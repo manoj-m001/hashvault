@@ -5,6 +5,7 @@ const bodyParser = require("body-parser");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
 const crypto = require('crypto');
+const { ClerkExpressRequireAuth } = require('@clerk/clerk-sdk-node');
 dotenv.config();
 const { ObjectId } = require("mongodb");
 
@@ -62,10 +63,17 @@ app.use(cors({
   origin:"*",
   methods:["GET", "POST", "DELETE", "PUT"],
   credentials:true,
+  allowedHeaders: ["Content-Type", "Authorization"]
 }));
+
+app.use(ClerkExpressRequireAuth());
 
 const errorHandler = (error, req, res, next) => {
   console.error("Error:", error);
+  // Clerk specific error handling
+  if (error.message === 'Unauthenticated') {
+    return res.status(401).json({ success: false, message: 'Unauthenticated', reason: error.reason || error.message });
+  }
   res.status(500).json({ success: false, message: "Internal Server Error" });
 };
 
@@ -74,14 +82,15 @@ app.use(errorHandler);
 app.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = req.auth.userId;
     const db = client.db(dbName);
     const collection = db.collection("passwords");
-    const password = await collection.findOne({ _id: new ObjectId(id) });
+    const password = await collection.findOne({ _id: new ObjectId(id), userId });
     if (password) {
       const { hashedPassword, ...passwordData } = password;
       res.status(200).json({ password: passwordData });
     } else {
-      res.status(404).json({ success: false, message: "Password not found" });
+      res.status(404).json({ success: false, message: "Password not found or unauthorized" });
     }
   } catch (error) {
     console.error("Error:", error);
@@ -91,9 +100,10 @@ app.get("/:id", async (req, res) => {
 
 app.get("/", async (req, res) => {
   try {
+    const userId = req.auth.userId;
     const db = client.db(dbName);
     const collection = db.collection("passwords");
-    const passwords = await collection.find({}).toArray();
+    const passwords = await collection.find({ userId }).toArray();
 
     const sanitizedPasswords = passwords.map((pwd) => {
       const { hashedPassword, encryptedPassword, ...rest } = pwd;
@@ -114,6 +124,8 @@ app.get("/", async (req, res) => {
 app.post("/", async (req, res) => {
   try {
     const { site, username, password } = req.body;
+    const userId = req.auth.userId; 
+
     if (!password) {
       return res
         .status(400)
@@ -125,6 +137,7 @@ app.post("/", async (req, res) => {
     const db = client.db(dbName);
     const collection = db.collection("passwords");
     const result = await collection.insertOne({
+      userId,
       site,
       username,
       hashedPassword,
@@ -141,6 +154,7 @@ app.post("/", async (req, res) => {
 app.delete("/:id", async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = req.auth.userId;
 
     if (!id) {
       return res
@@ -152,12 +166,13 @@ app.delete("/:id", async (req, res) => {
     const collection = db.collection("passwords");
     const result = await collection.deleteOne({
       _id: new ObjectId(id),
+      userId
     });
 
     if (result.deletedCount === 0) {
       return res
         .status(404)
-        .json({ success: false, message: "Password not found" });
+        .json({ success: false, message: "Password not found or unauthorized" });
     }
 
     res.status(200).json({

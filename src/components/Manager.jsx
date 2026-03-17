@@ -4,10 +4,13 @@ import { v4 as uuidv4 } from "uuid";
 import passwordRules from "./variables.json";
 import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
+import { useAuth } from "@clerk/react";
 
 const Manager = () => {
   const ref = useRef();
   const passwordRef = useRef();
+  const { getToken } = useAuth();
+  
   const [form, setForm] = useState({
     id: "",
     site: "",
@@ -20,7 +23,12 @@ const Manager = () => {
 
   const getPasswords = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_REACT_APP_BACKEND_BASE_URL}`);
+      const token = await getToken();
+      const response = await fetch(`${import.meta.env.VITE_REACT_APP_BACKEND_BASE_URL}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -119,11 +127,13 @@ const Manager = () => {
     ) {
       try {
         const formattedSite = form.site.startsWith('http') ? form.site : `https://${form.site}`;
+        const token = await getToken();
         
         const response = await fetch(`${import.meta.env.VITE_REACT_APP_BACKEND_BASE_URL}`, {
           method: "POST",
           headers: { 
             "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
           },
           body: JSON.stringify({
             site: formattedSite,
@@ -161,9 +171,13 @@ const Manager = () => {
 
     if (confirmDelete) {
       try {
+        const token = await getToken();
         const response = await fetch(`${import.meta.env.VITE_REACT_APP_BACKEND_BASE_URL}/${id}`, {
           method: "DELETE",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}` 
+          },
         });
 
         if (!response.ok) {
