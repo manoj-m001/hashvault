@@ -1,15 +1,21 @@
-import { useState } from "react";
+import { Show } from "@clerk/react";
 import Navbar from "./components/Navbar";
 import Manager from "./components/Manager";
+import Landing from "./components/Landing";
 import Footer from "./components/Footer";
 function App() {
   return (
     <>
-      <Navbar />
-      <div className="b g-green-50 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]">
+      <Show when="signed-in">
+        <Navbar />
         <Manager />
-      </div>
-      <Footer />
+        <Footer />
+      </Show>
+      <Show when="signed-out">
+        <Navbar />
+        <Landing />
+        <Footer />
+      </Show>
     </>
   );
 }

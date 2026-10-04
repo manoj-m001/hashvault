@@ -5,12 +5,13 @@ import passwordRules from "./variables.json";
 import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
 import { useAuth } from "@clerk/react";
+import "./manager.css";
 
 const Manager = () => {
   const ref = useRef();
   const passwordRef = useRef();
   const { getToken } = useAuth();
-  
+
   const [form, setForm] = useState({
     id: "",
     site: "",
@@ -24,31 +25,34 @@ const Manager = () => {
   const getPasswords = async () => {
     try {
       const token = await getToken();
-      const response = await fetch(`${import.meta.env.VITE_REACT_APP_BACKEND_BASE_URL}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
+      const response = await fetch(
+        `${import.meta.env.VITE_REACT_APP_BACKEND_BASE_URL}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         },
-      });
+      );
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      
+
       if (!Array.isArray(data)) {
-        throw new Error('Invalid data format received');
+        throw new Error("Invalid data format received");
       }
 
       setPasswordArray(
         data.map((pwd) => ({
           ...pwd,
-          id: pwd._id || pwd.id, 
-          password: pwd.password || '', 
-        }))
+          id: pwd._id || pwd.id,
+          password: pwd.password || "",
+        })),
       );
     } catch (error) {
       console.error("Error fetching passwords:", error);
       toast.error(`Failed to fetch passwords: ${error.message}`);
-      setPasswordArray([]); 
+      setPasswordArray([]);
     }
   };
 
@@ -65,7 +69,7 @@ const Manager = () => {
       toast.error("Nothing to copy!");
       return;
     }
-    
+
     try {
       navigator.clipboard.writeText(text);
       toast.success("Copied to clipboard!");
@@ -84,7 +88,6 @@ const Manager = () => {
         : "icons/eyecross.png";
   };
 
-  
   const generatePassword = () => {
     const lowerCase = "abcdefghijklmnopqrstuvwxyz";
     const upperCase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -126,31 +129,38 @@ const Manager = () => {
       validatePassword(form.password)
     ) {
       try {
-        const formattedSite = form.site.startsWith('http') ? form.site : `https://${form.site}`;
+        const formattedSite = form.site.startsWith("http")
+          ? form.site
+          : `https://${form.site}`;
         const token = await getToken();
-        
-        const response = await fetch(`${import.meta.env.VITE_REACT_APP_BACKEND_BASE_URL}`, {
-          method: "POST",
-          headers: { 
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`,
+
+        const response = await fetch(
+          `${import.meta.env.VITE_REACT_APP_BACKEND_BASE_URL}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              site: formattedSite,
+              username: form.username,
+              password: form.password,
+            }),
           },
-          body: JSON.stringify({
-            site: formattedSite,
-            username: form.username,
-            password: form.password,
-          }),
-        });
+        );
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.message || `Server error: ${response.status}`);
+          throw new Error(
+            errorData.message || `Server error: ${response.status}`,
+          );
         }
 
         const data = await response.json().catch(() => ({}));
-        
+
         if (data.success === false) {
-          throw new Error(data.message || 'Failed to save password');
+          throw new Error(data.message || "Failed to save password");
         }
 
         await getPasswords();
@@ -158,27 +168,34 @@ const Manager = () => {
         toast.success("Password saved successfully!");
       } catch (error) {
         console.error("Error saving password:", error);
-        toast.error(error.message || "Failed to save password. Please try again.");
+        toast.error(
+          error.message || "Failed to save password. Please try again.",
+        );
       }
     } else {
-      toast.error("Please ensure all fields are filled correctly and password meets requirements");
+      toast.error(
+        "Please ensure all fields are filled correctly and password meets requirements",
+      );
     }
   };
   const deletePassword = async (id) => {
     const confirmDelete = confirm(
-      "Do you really want to delete this password?"
+      "Do you really want to delete this password?",
     );
 
     if (confirmDelete) {
       try {
         const token = await getToken();
-        const response = await fetch(`${import.meta.env.VITE_REACT_APP_BACKEND_BASE_URL}/${id}`, {
-          method: "DELETE",
-          headers: { 
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}` 
+        const response = await fetch(
+          `${import.meta.env.VITE_REACT_APP_BACKEND_BASE_URL}/${id}`,
+          {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
           },
-        });
+        );
 
         if (!response.ok) {
           const errorData = await response.json();
@@ -224,176 +241,123 @@ const Manager = () => {
   };
 
   const renderPasswordTable = () => (
-    <div className="overflow-x-auto">
-      <table className="table-auto w-full rounded-md overflow-hidden mb-10">
-        <thead className="bg-green-800 text-white">
-          <tr>
-            <th className="py-2">Site</th>
-            <th className="py-2">Username</th>
-            <th className="py-2">Password</th>
-            <th className="py-2">Actions</th>
-          </tr>
-        </thead>
-        <tbody className="bg-green-100">
-          {passwordArray.map((item) => (
-            <tr key={item.id}>
-              <td className="py-2 border border-white text-center">
-                <div className="flex items-center justify-center">
-                  <img src={getFavicon(item.site)} className="mr-3" alt="" />
-                  <a href={item.site} target="_blank" rel="noopener noreferrer">
-                    {item.site}
-                  </a>
-                  <div
-                    className="lordiconcopy size-7 cursor-pointer"
-                    onClick={() => copyText(item.site)}
-                  >
-                    <lord-icon
-                      style={{
-                        width: "25px",
-                        height: "25px",
-                        paddingTop: "3px",
-                        paddingLeft: "3px",
-                      }}
-                      src="https://cdn.lordicon.com/iykgtsbt.json"
-                      trigger="hover"
-                    ></lord-icon>
-                  </div>
-                </div>
-              </td>
-              <td className="py-2 border border-white text-center">
-                <div className="flex items-center justify-center">
-                  <span>{item.username}</span>
-                  <div
-                    className="lordiconcopy size-7 cursor-pointer"
-                    onClick={() => copyText(item.username)}
-                  >
-                    <lord-icon
-                      style={{
-                        width: "25px",
-                        height: "25px",
-                        paddingTop: "3px",
-                        paddingLeft: "3px",
-                      }}
-                      src="https://cdn.lordicon.com/iykgtsbt.json"
-                      trigger="hover"
-                    ></lord-icon>
-                  </div>
-                </div>
-              </td>
-              <td className="py-2 border border-white text-center">
-                <div className="flex items-center justify-center">
-                  <span>{"*".repeat(8)}</span>
-                  <div
-                    className="lordiconcopy size-7 cursor-pointer"
-                    onClick={() => copyText(item.password, true)}
-                  >
-                    <lord-icon
-                      style={{
-                        width: "25px",
-                        height: "25px",
-                        paddingTop: "3px",
-                        paddingLeft: "3px",
-                      }}
-                      src="https://cdn.lordicon.com/iykgtsbt.json"
-                      trigger="hover"
-                    ></lord-icon>
-                  </div>
-                </div>
-              </td>
-              <td className="justify-center py-2 border border-white text-center">
-                <span
-                  className="cursor-pointer mx-1"
-                  onClick={() => editPassword(item._id)}
-                >
-                  <lord-icon
-                    src="https://cdn.lordicon.com/gwlusjdu.json"
-                    trigger="hover"
-                    style={{ width: "25px", height: "25px" }}
-                  ></lord-icon>
-                </span>
-                <span
-                  className="cursor-pointer mx-1"
-                  onClick={() => deletePassword(item._id)}
-                >
-                  <lord-icon
-                    src="https://cdn.lordicon.com/skkahier.json"
-                    trigger="hover"
-                    style={{ width: "25px", height: "25px" }}
-                  ></lord-icon>
-                </span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="vault-passwords__list">
+      {passwordArray.map((item) => (
+        <article className="vault-password-row" key={item.id}>
+          <div className="vault-password-row__site">
+            <img
+              src={getFavicon(item.site)}
+              className="vault-password-row__favicon"
+              alt=""
+            />
+            <div className="vault-password-row__details">
+              <a href={item.site} target="_blank" rel="noopener noreferrer">
+                {item.site}
+              </a>
+              <p>{item.username}</p>
+            </div>
+          </div>
+          <div
+            className="vault-password-row__secret"
+            aria-label="Hidden password"
+          >
+            <span aria-hidden="true">{"*".repeat(8)}</span>
+          </div>
+          <div className="vault-password-row__actions">
+            <button
+              className="vault-icon-button"
+              type="button"
+              aria-label="Copy password"
+              title="Copy password"
+              onClick={() => copyText(item.password, true)}
+            >
+              <lord-icon
+                src="https://cdn.lordicon.com/iykgtsbt.json"
+                trigger="hover"
+              ></lord-icon>
+            </button>
+            <button
+              className="vault-icon-button"
+              type="button"
+              aria-label="Edit password"
+              title="Edit password"
+              onClick={() => editPassword(item.id)}
+            >
+              <lord-icon
+                src="https://cdn.lordicon.com/gwlusjdu.json"
+                trigger="hover"
+              ></lord-icon>
+            </button>
+            <button
+              className="vault-icon-button"
+              type="button"
+              aria-label="Delete password"
+              title="Delete password"
+              onClick={() => deletePassword(item.id)}
+            >
+              <lord-icon
+                src="https://cdn.lordicon.com/skkahier.json"
+                trigger="hover"
+              ></lord-icon>
+            </button>
+          </div>
+        </article>
+      ))}
     </div>
   );
 
   return (
     <>
       <ToastContainer />
-      <div className="absolute inset-0 -z-10 h-full w-full bg-green-50 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]">
-        <div className="absolute left-0 right-0 top-0 -z-10 m-auto h-[310px] w-[310px] rounded-full bg-green-400 opacity-20 blur-[100px]"></div>
-      </div>
-      <div className="p-3 md:mycontainer min-h-[88.2vh]">
-        <h1 className="text-4xl font-bold text-center">
-          <span className="text-green-800">&lt;</span>
-          <span>Hash</span>
-          <span className="text-green-800">Vault/&gt;</span>
-        </h1>
-        <p className="text-green-900 text-lg text-center">
-          Your own Password Manager
-        </p>
+      <main className="vault-manager">
+        <div className="vault-manager__content">
+          <header className="vault-manager__heading">
+            <h1>Password Manager</h1>
+            <p>Manage your credentials in one place</p>
+          </header>
 
-        <div className="flex flex-col p-4 text-black gap-8 items-center">
-          <input
-            value={form.site}
-            onChange={handleChange}
-            placeholder="Enter website URL"
-            className="rounded-full border border-green-500 w-full p-4 py-1"
-            type="text"
-            name="site"
-            id="site"
-          />
-          <div className="flex flex-col md:flex-row w-full justify-between gap-8">
+          <section className="vault-form" aria-label="Add a password">
             <input
-              value={form.username}
+              value={form.site}
               onChange={handleChange}
-              placeholder="Enter Username"
-              className="rounded-full border border-green-500 w-full p-4 py-1"
+              placeholder="Enter website URL"
               type="text"
-              name="username"
-              id="username"
+              name="site"
+              id="site"
+              aria-label="Website URL"
             />
-            <div className="flex flex-col relative">
-              <div className="relative">
+            <div className="vault-form__credentials">
+              <input
+                value={form.username}
+                onChange={handleChange}
+                placeholder="Enter Username"
+                type="text"
+                name="username"
+                id="username"
+                aria-label="Username"
+              />
+              <div className="vault-password-field">
                 <input
                   ref={passwordRef}
                   value={form.password}
                   onChange={handleChange}
                   onBlur={() => setIsTyping(false)}
                   placeholder="Enter Password"
-                  className="rounded-full border border-green-500 w-full p-4 py-1"
                   type="password"
                   name="password"
                   id="password"
+                  aria-label="Password"
                 />
-                <span
-                  className="absolute right-[3px] top-[4px] cursor-pointer"
+                <button
+                  className="vault-password-toggle"
+                  type="button"
+                  aria-label="Show or hide password"
                   onClick={showPassword}
                 >
-                  <img
-                    ref={ref}
-                    className="p-1"
-                    width={26}
-                    src="icons/eye.png"
-                    alt="eye"
-                  />
-                </span>
-              </div>
-              {isTyping && (
-                <div className="flex flex-col items-start w-full absolute top-10">
-                  <div className="mt-2 p-2 border rounded bg-gray-100">
+                  <img ref={ref} src="icons/eye.png" alt="" />
+                </button>
+                {isTyping && (
+                  <div className="vault-password-rules">
                     <ul>
                       <li
                         style={{
@@ -434,36 +398,50 @@ const Manager = () => {
                       </li>
                     </ul>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
-          </div>
 
-          {/* Add a button to generate a password */}
-          <button
-            onClick={generatePassword}
-            className="bg-green-600 hover:bg-green-600 text-white rounded-full px-4 py-2"
-          >
-            Generate Password
-          </button>
+            <div className="vault-form__actions">
+              <button
+                onClick={generatePassword}
+                className="vault-button vault-button--quiet"
+                type="button"
+              >
+                Generate Password
+              </button>
+              <button
+                onClick={savePassword}
+                className="vault-button vault-button--primary"
+                type="button"
+              >
+                <lord-icon
+                  src="https://cdn.lordicon.com/jgnvfzqg.json"
+                  trigger="hover"
+                ></lord-icon>
+                {form.id ? "Update Password" : "Save Password"}
+              </button>
+            </div>
+          </section>
 
-          <button
-            onClick={savePassword}
-            className="flex justify-center items-center gap-2 bg-green-500 hover:bg-green-600 rounded-full px-8 py-2 w-fit border border-green-900"
+          <section
+            className="vault-passwords"
+            aria-labelledby="password-list-title"
           >
-            <lord-icon
-              src="https://cdn.lordicon.com/jgnvfzqg.json"
-              trigger="hover"
-            ></lord-icon>
-            {form.id ? "Update" : "Save"}
-          </button>
+            <header className="vault-passwords__header">
+              <h2 id="password-list-title">Your Passwords</h2>
+              <span className="vault-passwords__count">
+                {passwordArray.length}
+              </span>
+            </header>
+            {passwordArray.length === 0 ? (
+              <p className="vault-passwords__empty">No passwords to show</p>
+            ) : (
+              renderPasswordTable()
+            )}
+          </section>
         </div>
-        <div className="passwords">
-          <h2 className="font-bold text-2xl py-4">Your Passwords</h2>
-          {passwordArray.length === 0 && <div>No passwords to show</div>}
-          {passwordArray.length !== 0 && renderPasswordTable()}
-        </div>
-      </div>
+      </main>
     </>
   );
 };

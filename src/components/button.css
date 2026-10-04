@@ -1,9 +1,50 @@
-.save-button {
-  background-color: #2ecc71;
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 5px;
+.nav-auth-button {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 0 14px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms ease;
+}
+
+.nav-auth-button:hover {
+  transform: translateY(-1px);
+}
+
+.nav-auth-button:focus-visible {
+  outline: 3px solid rgb(134 239 172 / 75%);
+  outline-offset: 2px;
+}
+
+.nav-auth-button--secondary {
+  border-color: rgb(226 232 240 / 22%);
+  background: transparent;
+  color: #e2e8f0;
+}
+
+.nav-auth-button--secondary:hover {
+  background: #15803d;
+  box-shadow: 0 5px 14px rgb(22 163 74 / 32%);
+}
+
+.nav-auth-button--primary {
+  border-color: rgb(226 232 240 / 22%);
+  background: transparent;
+  color: #e2e8f0;
+}
+
+.nav-auth-button--primary:hover {
+  background: #15803d;
+  box-shadow: 0 5px 14px rgb(22 163 74 / 32%);
 }
