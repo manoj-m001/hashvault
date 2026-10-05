@@ -1,6 +1,7 @@
 import React from "react";
 import { Show, SignInButton, SignUpButton, UserButton } from "@clerk/react";
 import "./button.css";
+
 const Navbar = () => {
   return (
     <nav className="bg-slate-800 text-white">
