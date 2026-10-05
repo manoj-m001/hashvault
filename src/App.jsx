@@ -8,7 +8,7 @@ function App() {
   return (
     <>
         <TextCursor
-          text="Mmm"
+          text=""
           spacing={80}
           followMouseDirection
           randomFloat
