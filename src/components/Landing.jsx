@@ -41,13 +41,7 @@ const Landing = () => {
               </div>
 
               <h1 className="max-w-3xl text-5xl font-bold tracking-tight text-slate-900 sm:text-6xl lg:text-7xl">
-                <div style={{ marginTop: "0.5rem" }}>
-                  <DecryptedText
-                    text="Your Passwords "
-                    revealDirection="start"
-                    sequential
-                    useOriginalCharsOnly={false}
-                  />
+                Your Credentials.
                   <span className="block text-green-700">
                     <DecryptedText
                       text="Organized Secure."
@@ -56,7 +50,6 @@ const Landing = () => {
                       useOriginalCharsOnly={false}
                     />
                   </span>
-                </div>
               </h1>
 
               <p className="mt-7 max-w-xl text-lg leading-8 text-slate-600">
